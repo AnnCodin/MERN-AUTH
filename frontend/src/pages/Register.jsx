@@ -18,33 +18,33 @@ const Register = () => {
     try {
       e.preventDefault();
       axios.defaults.withCredentials = true;
-
-      if (state === "Sign Up") {
-        const { data } = await axios.post(backendUrl + "/api/auth/register", {
-          name,
-          email,
-          password,
-          phoneNumber,
-        });
-        if (data.success) {
-          setIsLoggedin(true);
-          getUserData();
-          navigate("/");
-        } else {
-          toast.error(data.message);
-        }
-      } else {
-        const { data } = await axios.post(backendUrl + "/api/auth/login", {
-          email,
-          password,
-        });
-        if (data.success) {
-          setIsLoggedin(true);
-          getUserData();
-          navigate("/");
-        } else {
-          toast.error(data.message);
-        }
+      {
+        // if (state === "Sign Up") {
+        //   const { data } = await axios.post(backendUrl + "/api/auth/register", {
+        //     name,
+        //     email,
+        //     password,
+        //     phoneNumber,
+        //   });
+        //   if (data.success) {
+        //     setIsLoggedin(true);
+        //     getUserData();
+        //     navigate("/");
+        //   } else {
+        //     toast.error(data.message);
+        //   }
+        // } else {
+        //   const { data } = await axios.post(backendUrl + "/api/auth/login", {
+        //     email,
+        //     password,
+        //   });
+        //   if (data.success) {
+        //     setIsLoggedin(true);
+        //     getUserData();
+        //     navigate("/");
+        //   } else {
+        //     toast.error(data.message);
+        //   }
       }
     } catch (error) {
       toast.error(error.message);
@@ -74,8 +74,9 @@ const Register = () => {
               <input
                 className="bg-transparent outline-none"
                 type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
-                required
               />
             </div>
           </div>
@@ -87,8 +88,6 @@ const Register = () => {
               <input
                 onChange={(e) => setEmail(e.target.value)}
                 value={email}
-                onChange={(e) => setName(e.target.value)}
-                value={name}
                 className="bg-transparent outline-none "
                 type="email"
                 placeholder="your@mail.com"

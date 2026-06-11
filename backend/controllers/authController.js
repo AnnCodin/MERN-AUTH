@@ -1,25 +1,39 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import userModel from "../models/userModel.js";
-import transporter from "../config/nodeMailer.js";
+import transporter from "../config/nodemailer.js";
 import {
   EMAIL_VERIFY_TEMPLATE,
   PASSWORD_RESET_TEMPLATE,
 } from "../config/emailTemplates.js";
 
 export const register = async (req, res) => {
-  const { name, email, password } = req.body;
-  if (!name || !email || !password) {
-    return res.json({ success: false, message: "Missing Details" });
+  const { name, email, password, phoneNumber } = req.body;
+
+  if (!name || !email || !password || !phoneNumber) {
+    return res.json({
+      success: false,
+      message: "Missing Details",
+    });
   }
   try {
     const existingUser = await userModel.findOne({ email });
+
     if (existingUser) {
-      return res.json({ success: false, message: "User already exists" });
+      return res.json({
+        success: false,
+        message: "User already exists",
+      });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    const user = new userModel({ name, email, password: hashedPassword });
+    const user = new userModel({
+      name,
+      email,
+      password: hashedPassword,
+      phoneNumber,
+    });
+
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -28,8 +42,8 @@ export const register = async (req, res) => {
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+      secure: false,
+      sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -43,9 +57,15 @@ export const register = async (req, res) => {
 
     await transporter.sendMail(mailOptions);
 
-    return res.json({ success: true });
+    return res.json({
+      success: true,
+      message: "Registration successful",
+    });
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    return res.json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -110,7 +130,8 @@ export const logout = async (req, res) => {
 //Send verification OTP
 export const sendVerfiyOtp = async (req, res) => {
   try {
-    const { userId } = req.body;
+    const userId = req.userId;
+    const { otp } = req.body;
 
     const user = await userModel.findById(userId);
 
@@ -146,7 +167,8 @@ export const sendVerfiyOtp = async (req, res) => {
 
 //Email verification OTP
 export const verifyEmail = async (req, res) => {
-  const { userId, otp } = req.body;
+  const userId = req.userId;
+  const { otp } = req.body;
 
   if (!userId || !otp) {
     return res.json({ success: false, message: "Missing Details" });
@@ -177,9 +199,14 @@ export const verifyEmail = async (req, res) => {
 //User Authentication
 export const isAuthenticated = async (req, res) => {
   try {
-    return res.json({ success: false });
+    return res.json({
+      success: true,
+    });
   } catch (error) {
-    res.json({ success: false, message: message.error });
+    return res.json({
+      success: false,
+      message: error.message,
+    });
   }
 };
 
@@ -217,7 +244,7 @@ export const sendResetOtp = async (req, res) => {
     await transporter.sendMail(mailOption);
     return res.json({ success: true, message: "OTP sent to your email." });
   } catch (error) {
-    return res.json({ success: false, message: message.error });
+    return res.json({ success: false, message: error.message });
   }
 };
 
@@ -225,7 +252,7 @@ export const sendResetOtp = async (req, res) => {
 export const resetPassword = async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
-  if (!email || !otp || !newpassword) {
+  if (!email || !otp || !newPassword) {
     return res.json({
       success: false,
       message: "Email, OTP and new password are required.",
@@ -253,7 +280,7 @@ export const resetPassword = async (req, res) => {
       });
     }
 
-    const hashedPassword = await bcrypt.hash(newpassword, 10);
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     user.resetOtp = "";
     user.resetOtpExpireAt = 0;
@@ -265,6 +292,6 @@ export const resetPassword = async (req, res) => {
       message: "Password has been reset successfully.",
     });
   } catch (error) {
-    return res.json({ success: false, message: message.error });
+    return res.json({ success: false, message: error.message });
   }
 };

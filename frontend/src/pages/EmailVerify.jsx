@@ -3,9 +3,10 @@ import { assets } from "../assets/assets";
 import { AppContent } from "../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const EmailVerify = () => {
-  axios.default.withCredentials = true;
+  axios.defaults.withCredentials = true;
   const { backendUrl, isLoggedin, userData, getUserData } =
     useContext(AppContent);
 
@@ -57,7 +58,7 @@ const EmailVerify = () => {
   };
 
   useEffect(() => {
-    isLoggedin && userData && userData.isAccountVerfied && navigate("/");
+    isLoggedin && userData && userData.isAccountVerified && navigate("/");
   }, [isLoggedin, userData]);
 
   return (

@@ -3,6 +3,7 @@ import { assets } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import { AppContent } from "../context/AppContext";
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const ResetPassword = () => {
   const { backendUrl } = useContext(AppContent);
@@ -12,7 +13,7 @@ const ResetPassword = () => {
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [isEmailSent, setNIsEmailSent] = useState("");
-  const [otp, setOtp] = useState(0);
+  const [otp, setOtp] = useState("");
   const [isOtpSubmitted, setIsOtpSubmitted] = useState(false);
 
   const inputRefs = React.useRef([]);
@@ -55,7 +56,7 @@ const ResetPassword = () => {
   const onSubmitOTP = async (e) => {
     e.preventDefault();
     const otpArray = inputRefs.current.map((e) => e.value);
-    setOtp(otpArray.join(" "));
+    setOtp(otpArray.join(""));
     setIsOtpSubmitted(true);
   };
 
