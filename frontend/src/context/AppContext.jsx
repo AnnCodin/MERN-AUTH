@@ -5,30 +5,47 @@ import { toast } from "react-toastify";
 export const AppContent = createContext();
 
 export const AppContextProvider = (props) => {
-  axios.defaults.withCredentials = true;
-
-  const backendUrl = import.meta.env.VITE_BACKEND_URL;
+  const backendUrl =
+    import.meta.env.VITE_BACKEND_URL || "http://localhost:4000";
   const [isLoggedin, setIsLoggedin] = useState(false);
-  const [userData, setUserData] = useState(false);
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Configure axios defaults once
+  axios.defaults.withCredentials = true;
+  axios.defaults.baseURL = backendUrl;
 
   const getAuthState = async () => {
     try {
-      const { data } = await axios.get(backendUrl + "/api/auth/is-auth");
+      const { data } = await axios.get("/api/auth/is-auth");
       if (data.success) {
         setIsLoggedin(true);
-        getUserData();
+        await getUserData();
       }
     } catch (error) {
-      toast.error(error.message);
+      console.error("Auth check error:", error);
+      // Don't show error toast for unauthenticated users
+      if (error.response?.status !== 401) {
+        toast.error(error.response?.data?.message || "Connection error");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   const getUserData = async () => {
     try {
-      const { data } = await axios.get(backendUrl + "/api/user/data");
-      data.success ? setUserData(data.userData) : toast.error(data.message);
+      const { data } = await axios.get("/api/user/data");
+      if (data.success) {
+        setUserData(data.userData);
+      } else {
+        toast.error(data.message);
+      }
     } catch (error) {
-      toast.error(error.message);
+      console.error("Get user data error:", error);
+      if (error.response?.status !== 401) {
+        toast.error(error.response?.data?.message || "Failed to get user data");
+      }
     }
   };
 
@@ -43,6 +60,7 @@ export const AppContextProvider = (props) => {
     userData,
     setUserData,
     getUserData,
+    loading,
   };
 
   return (

@@ -4,23 +4,31 @@ const userAuth = async (req, res, next) => {
   const { token } = req.cookies;
 
   if (!token) {
-    return res.json({ success: false, message: "Not Authorized, Login Again" });
+    return res
+      .status(401)
+      .json({ success: false, message: "Not Authorized, Login Again" });
   }
   try {
+    if (!process.env.JWT_SECRET) {
+      throw new Error("JWT_SECRET is not configured");
+    }
+
     const tokenDecode = jwt.verify(token, process.env.JWT_SECRET);
 
     if (tokenDecode.id) {
-      req.body.userId = tokenDecode.id;
+      req.userId = tokenDecode.id;
+      next();
     } else {
-      return res.json({
+      return res.status(401).json({
         success: false,
         message: "Not Authorized, Login Again",
       });
     }
-
-    next();
   } catch (error) {
-    res.json({ success: false, message: error.message });
+    console.error("Auth middleware error:", error.message);
+    res
+      .status(401)
+      .json({ success: false, message: "Invalid or expired token" });
   }
 };
 

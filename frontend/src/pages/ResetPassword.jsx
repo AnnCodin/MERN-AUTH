@@ -7,16 +7,16 @@ import { toast } from "react-toastify";
 
 const ResetPassword = () => {
   const { backendUrl } = useContext(AppContent);
-  axios.defaults.withCredentials = true;
 
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [isEmailSent, setNIsEmailSent] = useState("");
+  const [isEmailSent, setIsEmailSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [isOtpSubmitted, setIsOtpSubmitted] = useState(false);
 
   const inputRefs = React.useRef([]);
+
   const handleInput = (e, index) => {
     if (e.target.value.length > 0 && index < inputRefs.current.length - 1) {
       inputRefs.current[index + 1].focus();
@@ -30,8 +30,9 @@ const ResetPassword = () => {
   };
 
   const handlePaste = (e) => {
+    e.preventDefault();
     const paste = e.clipboardData.getData("text");
-    const pasteArray = paste.split("");
+    const pasteArray = paste.slice(0, 6).split("");
     pasteArray.forEach((char, index) => {
       if (inputRefs.current[index]) {
         inputRefs.current[index].value = char;
@@ -42,35 +43,74 @@ const ResetPassword = () => {
   const onSubmitEmail = async (e) => {
     e.preventDefault();
     try {
+      console.log(
+        "Sending request to:",
+        backendUrl + "/api/auth/send-reset-otp",
+      );
+      console.log("With email:", email);
+
       const { data } = await axios.post(
         backendUrl + "/api/auth/send-reset-otp",
         { email },
+        {
+          withCredentials: true,
+          timeout: 15000, // 15 second timeout
+        },
       );
-      data.success ? toast.success(data.message) : toast.error(data.message);
-      data.success && setIsEmailSent(true);
+
+      if (data.success) {
+        toast.success(data.message);
+        setIsEmailSent(true);
+      } else {
+        toast.error(data.message);
+      }
     } catch (error) {
-      toast.error(error.message);
+      console.error("Full error object:", error);
+      // Check for network/socket errors specifically
+      if (error.code === "ECONNABORTED") {
+        toast.error("Request timeout. Server may be slow to respond.");
+      } else if (error.message === "Network Error") {
+        toast.error(
+          "Cannot connect to server. Make sure backend is running on port 4000",
+        );
+      } else {
+        toast.error(error.response?.data?.message || error.message);
+      }
     }
   };
 
   const onSubmitOTP = async (e) => {
     e.preventDefault();
     const otpArray = inputRefs.current.map((e) => e.value);
-    setOtp(otpArray.join(""));
+    const otpValue = otpArray.join("");
+    if (otpValue.length !== 6) {
+      toast.error("Please enter complete 6-digit OTP");
+      return;
+    }
+    setOtp(otpValue);
     setIsOtpSubmitted(true);
   };
 
   const onSubmitNewPassword = async (e) => {
     e.preventDefault();
+    if (newPassword.length < 6) {
+      toast.error("Password must be at least 6 characters");
+      return;
+    }
     try {
       const { data } = await axios.post(
         backendUrl + "/api/auth/reset-password",
         { email, otp, newPassword },
+        { withCredentials: true },
       );
-      data.success ? toast.success(data.message) : toast.error(data.message);
-      data.success && navigate("/login");
+      if (data.success) {
+        toast.success(data.message);
+        navigate("/login");
+      } else {
+        toast.error(data.message);
+      }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.response?.data?.message || error.message);
     }
   };
 
@@ -79,14 +119,14 @@ const ResetPassword = () => {
       <img
         onClick={() => navigate("/")}
         src={assets.logo}
-        alt=""
+        alt="Logo"
         className="absolute left-5 sm:left-20 top-5 w-28 sm:w-32 cursor-pointer"
       />
 
       {!isEmailSent && (
         <form
           onSubmit={onSubmitEmail}
-          className="bg-slate-900 p-8 rounded-lg shadow-lg w-96 text-sm  text-indigo-300"
+          className="bg-slate-900 p-8 rounded-lg shadow-lg w-96 text-sm text-indigo-300"
         >
           <h1 className="text-white text-2xl font-semibold text-center mb-4">
             Reset Password
@@ -95,23 +135,21 @@ const ResetPassword = () => {
             Enter your registered email address.
           </p>
           <div className="mb-4 flex items-center gap-3 w-full px-5 py-2.5 rounded-full bg-[#333A5C]">
-            <img src={assets.mail_icon} alt="" className="w-3 h-3" />
+            <img src={assets.mail_icon} alt="" className="w-4 h-4" />
             <input
               type="email"
               placeholder="Email ID"
-              className="bg-transparent outline-none"
+              className="bg-transparent outline-none flex-1"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
           <button className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-900 text-white rounded-full mt-3">
-            Submit
+            Send OTP
           </button>
         </form>
       )}
-
-      {/* Otp input form */}
 
       {!isOtpSubmitted && isEmailSent && (
         <form
@@ -141,16 +179,15 @@ const ResetPassword = () => {
               ))}
           </div>
           <button className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-900 text-white rounded-full">
-            Submit
+            Verify OTP
           </button>
         </form>
       )}
 
-      {/* Enter new password */}
       {isOtpSubmitted && isEmailSent && (
         <form
           onSubmit={onSubmitNewPassword}
-          className="bg-slate-900 p-8 rounded-lg shadow-lg w-96 text-sm  text-indigo-300"
+          className="bg-slate-900 p-8 rounded-lg shadow-lg w-96 text-sm text-indigo-300"
         >
           <h1 className="text-white text-2xl font-semibold text-center mb-4">
             New Password
@@ -159,18 +196,19 @@ const ResetPassword = () => {
             Enter your new password.
           </p>
           <div className="mb-4 flex items-center gap-3 w-full px-5 py-2.5 rounded-full bg-[#333A5C]">
-            <img src={assets.lock_icon} alt="" className="w-3 h-3" />
+            <img src={assets.lock_icon} alt="" className="w-4 h-4" />
             <input
               type="password"
               placeholder="New Password"
-              className="bg-transparent outline-none"
+              className="bg-transparent outline-none flex-1"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
+              minLength="6"
             />
           </div>
           <button className="w-full py-2.5 bg-gradient-to-r from-indigo-500 to-indigo-900 text-white rounded-full mt-3">
-            Submit
+            Reset Password
           </button>
         </form>
       )}

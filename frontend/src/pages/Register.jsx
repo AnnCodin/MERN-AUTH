@@ -15,39 +15,29 @@ const Register = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const onSubmitHandler = async (e) => {
+    e.preventDefault();
+
     try {
-      e.preventDefault();
-      axios.defaults.withCredentials = true;
-      {
-        // if (state === "Sign Up") {
-        //   const { data } = await axios.post(backendUrl + "/api/auth/register", {
-        //     name,
-        //     email,
-        //     password,
-        //     phoneNumber,
-        //   });
-        //   if (data.success) {
-        //     setIsLoggedin(true);
-        //     getUserData();
-        //     navigate("/");
-        //   } else {
-        //     toast.error(data.message);
-        //   }
-        // } else {
-        //   const { data } = await axios.post(backendUrl + "/api/auth/login", {
-        //     email,
-        //     password,
-        //   });
-        //   if (data.success) {
-        //     setIsLoggedin(true);
-        //     getUserData();
-        //     navigate("/");
-        //   } else {
-        //     toast.error(data.message);
-        //   }
+      if (password !== confirmPassword) {
+        return toast.error("Passwords do not match");
+      }
+
+      const { data } = await axios.post(backendUrl + "/api/auth/register", {
+        name,
+        email,
+        password,
+        phoneNumber,
+      });
+
+      if (data.success) {
+        setIsLoggedin(true);
+        await getUserData();
+        navigate("/");
+      } else {
+        toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.response?.data?.message || error.message);
     }
   };
 
@@ -77,6 +67,7 @@ const Register = () => {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="John Doe"
+                required
               />
             </div>
           </div>

@@ -12,38 +12,26 @@ const Login = () => {
   const [password, setPassword] = useState("");
 
   const onSubmitHandler = async (e) => {
+    e.preventDefault();
+
     try {
-      e.preventDefault();
       axios.defaults.withCredentials = true;
 
-      if (state === "Login") {
-        const { data } = await axios.post(backendUrl + "/api/auth/register", {
-          name,
-          email,
-          password,
-        });
-        if (data.success) {
-          setIsLoggedin(true);
-          getUserData();
-          navigate("/");
-        } else {
-          toast.error(data.message);
-        }
+      const { data } = await axios.post(backendUrl + "/api/auth/login", {
+        email,
+        password,
+      });
+
+      if (data.success) {
+        setIsLoggedin(true);
+        await getUserData();
+        navigate("/");
       } else {
-        const { data } = await axios.post(backendUrl + "/api/auth/login", {
-          email,
-          password,
-        });
-        if (data.success) {
-          setIsLoggedin(true);
-          getUserData();
-          navigate("/");
-        } else {
-          toast.error(data.message);
-        }
+        toast.error(data.message);
       }
     } catch (error) {
-      toast.error(error.message);
+      console.log(error);
+      toast.error(error.response?.data?.message || error.message);
     }
   };
 
